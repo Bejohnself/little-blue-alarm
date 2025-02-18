@@ -22,36 +22,67 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.tryalarm.AlarmDismissReceiver
 import com.example.tryalarm.AlarmReceiver
 import com.example.tryalarm.R
+import com.example.tryalarm.data.UserPreferencesStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
-val alarmViewModel = AlarmViewModel
+//val alarmViewModel = AlarmViewModel()
 
-object AlarmViewModel : ViewModel() {
+class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
     private val _uiState = MutableStateFlow(AlarmUiState())
     val uiState: StateFlow<AlarmUiState> = _uiState.asStateFlow()
     var alarmOn by mutableStateOf(false)
-    var pendingGapTime by mutableStateOf("")
+
+    //    var pendingGapTime by mutableStateOf(uiState.value.gapTime.toString())
     var isValidInput by mutableStateOf(true)
-    var tip by mutableStateOf("")
+
     lateinit var alarmManager: AlarmManager
     var expanded by mutableStateOf(false)
+//    private var save by mutableStateOf(false)
+
+    init {
+        viewModelScope.launch {
+            store.observePreferences().collect { prefs ->
+                _uiState.value = prefs
+            }
+        }
+    }
 
     fun initAlarmManager(context: Context) {
         alarmManager = context.getSystemService<AlarmManager>()!!
     }
 
-    fun onGapTimeChanged(updateGapTime: String) {
-        pendingGapTime = updateGapTime
+    fun onGapTimeChanged(updateGapTime: String?) {
+        if (updateGapTime != null) {
+            _uiState.update {
+                it.copy(
+                    gapTime = updateGapTime
+                )
+            }
+        }
     }
 
-    fun onExpandClick(){
+    fun onExpandClick() {
         expanded = !expanded
+    }
+
+    fun onSaveClick(context: Context) {
+        viewModelScope.launch {
+            store.update(
+                tip = uiState.value.tip ?: "",
+                gapTime = uiState.value.gapTime ?: ""
+            )
+        }
+        Toast.makeText(
+            context, context.getString(R.string.save_configure), Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun getAlarmIntent(context: Context): PendingIntent {
@@ -70,22 +101,20 @@ object AlarmViewModel : ViewModel() {
 //        val triggerTime = (System.currentTimeMillis() + minutes * 60 * 1000).toLong()
         val intent = getAlarmIntent(context)
         alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            _uiState.value.triggerTime,
-            intent
+            AlarmManager.RTC_WAKEUP, _uiState.value.triggerTime, intent
         )
     }
 
     // 检查输入是否可以转化成小数且大于0
     private fun checkValidInput(): Boolean {
-        return if (pendingGapTime.toDoubleOrNull() != null) {
-            if (pendingGapTime.toDouble() > 0) {
-                true
-            } else {
-                false
-            }
-        } else {
+        return if (_uiState.value.gapTime == null) {
             false
+        } else {
+            if (_uiState.value.gapTime!!.toDoubleOrNull() == null) {
+                false
+            } else {
+                _uiState.value.gapTime!!.toDoubleOrNull()!! > 0
+            }
         }
     }
 
@@ -100,11 +129,6 @@ object AlarmViewModel : ViewModel() {
             isValidInput = false
         } else {
             isValidInput = true
-            _uiState.update { currentState ->
-                currentState.copy(
-                    gapTime = pendingGapTime.toDouble()
-                )
-            }
             if (!hasNotificationsPermission(context)) {      // 没有通知权限
                 Toast.makeText(
                     context,
@@ -113,18 +137,27 @@ object AlarmViewModel : ViewModel() {
                 ).show()
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             } else {
-//                Toast.makeText(context, "已有通知权限", Toast.LENGTH_SHORT).show()
                 if (hasExactAlarmPermission(context)) {
                     _uiState.update {
                         it.copy(
-                            triggerTime = System.currentTimeMillis() + (_uiState.value.gapTime * 60_000L).toLong()
+                            triggerTime = System.currentTimeMillis() +
+                                    ((_uiState.value.gapTime!!.toDouble() * 60_000).toLong())
                         )
                     }
                     setAlarm(alarmManager, context)
                     alarmOn = true
+                    Toast.makeText(
+                        context,
+                        context.getString(
+                            R.string.set_alarm_warning,
+                            uiState.value.gapTime.toString()
+                        ), Toast.LENGTH_SHORT
+                    ).show()
                 } else {
-                    Toast.makeText(context,
-                        context.getString(R.string.can_not_set_exact_alarm), Toast.LENGTH_SHORT)
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.can_not_set_exact_alarm), Toast.LENGTH_SHORT
+                    )
                         .show()
                     permissionLauncher.launch(Manifest.permission.SCHEDULE_EXACT_ALARM)
                 }
@@ -136,19 +169,25 @@ object AlarmViewModel : ViewModel() {
         alarmManager.cancel(getAlarmIntent(context))
         alarmOn = false
         isValidInput = true
-        pendingGapTime = ""
+//        pendingGapTime = ""
         _uiState.update {
             it.copy(
-                leftTime = 0L,
-                triggerTime = 0L,
-                gapTime = 1.0
+                leftTime = 0L, triggerTime = 0L
             )
         }
-//        Toast.makeText(context, "已取消当前周期闹钟", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            context,
+            context.getString(R.string.cancel_alarm_warning),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     fun onTipChange(tip: String) {
-        this.tip = tip
+        _uiState.update {
+            it.copy(
+                tip = tip
+            )
+        }
     }
 
     fun updateLeftTime() {
@@ -165,8 +204,9 @@ object AlarmViewModel : ViewModel() {
         val currentTime = System.currentTimeMillis()
         _uiState.update { currentState ->
             currentState.copy(
-                triggerTime = currentTime + (_uiState.value.gapTime * 60_000L).toLong(),
-                leftTime = (_uiState.value.gapTime * 60_000L).toLong()
+                triggerTime = currentTime +
+                        (_uiState.value.gapTime!!.toDouble() * 60_000).toLong(),
+                leftTime = (_uiState.value.gapTime!!.toDouble() * 60_000).toLong()
             )
         }
         setAlarm(alarmManager, context)
@@ -187,31 +227,27 @@ object AlarmViewModel : ViewModel() {
         )
         val notification = NotificationCompat.Builder(context, "alarm_channel")
             .setContentTitle(context.getString(R.string.notification_title))
-            .setContentText(tip)
+            .setContentText(uiState.value.tip)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setLargeIcon(BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher))
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setOngoing(true) // 持续通知
-            .setAutoCancel(true)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // 允许锁屏界面显示
+            .setPriority(NotificationCompat.PRIORITY_MAX).setOngoing(true) // 持续通知
+            .setAutoCancel(true).setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // 允许锁屏界面显示
             .setCategory(NotificationCompat.CATEGORY_ALARM) // 关键分类标识
 //            .setFullScreenIntent(pendingIntent, true) // 提升锁屏优先级
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel, // 关闭图标
                 context.getString(R.string.close_button), // 按钮文字
                 dismissPendingIntent
-            )
-            .build()
+            ).build()
 
         // 显示通知（添加权限检查）
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            Toast.makeText(context,
-                context.getString(R.string.need_notification_authority), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context, context.getString(R.string.need_notification_authority), Toast.LENGTH_SHORT
+            ).show()
         } else {
             NotificationManagerCompat.from(context).notify(1, notification)
         }
@@ -220,9 +256,7 @@ object AlarmViewModel : ViewModel() {
     @RequiresApi(Build.VERSION_CODES.Q)
     fun createNotificationChannel(context: Context) {
         val channel = NotificationChannel(
-            "alarm_channel",
-            "闹钟通知",
-            NotificationManager.IMPORTANCE_HIGH
+            "alarm_channel", "闹钟通知", NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = context.getString(R.string.notifications_for_precise_alarm_triggering)
 //            this.vibrationPattern = vibrationPattern
@@ -247,8 +281,9 @@ object AlarmViewModel : ViewModel() {
     }
 
     private fun hasNotificationsPermission(context: Context): Boolean {
-        return !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED)
+        return !(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) != PackageManager.PERMISSION_GRANTED)
     }
 }

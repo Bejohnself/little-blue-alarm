@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -42,18 +43,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.tryalarm.R
 import com.example.tryalarm.ui.state.AlarmViewModel
-import com.example.tryalarm.ui.theme.TryAlarmTheme
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("NewApi")
 @Composable
-fun AlarmApp() {
+fun AlarmApp(alarmViewModel: AlarmViewModel) {
     Scaffold(
         topBar = {
             // Material 3 风格示例
@@ -89,24 +87,23 @@ fun AlarmApp() {
                     .fillMaxSize()
                     .padding(innerPadding),
             ) {
-                AlarmScreen()
+                AlarmScreen(
+                    alarmViewModel,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 40.dp)
+                )
             }
         }
     )
 }
 
-@Preview
-@Composable
-fun AlarmAppPreview() {
-    TryAlarmTheme {
-        AlarmApp()
-    }
-}
 
 @RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun AlarmScreen(
-    alarmViewModel: AlarmViewModel = viewModel<AlarmViewModel>(),
+    alarmViewModel: AlarmViewModel,
+    modifier: Modifier = Modifier
 ) {
     val alarmUiState by alarmViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -132,32 +129,45 @@ fun AlarmScreen(
         ActivityResultContracts.RequestPermission()
     ) { /* 处理结果 */ }
 
+
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         OutlinedTextField(
-            value = alarmViewModel.tip,
+            value = alarmUiState.tip ?: "",
             singleLine = true,
             onValueChange = { alarmViewModel.onTipChange(it) },
             label = {
                 Text(stringResource(R.string.tip_input_tag))
-            }
+            },
+            modifier = modifier
         )
         Spacer(modifier = Modifier.padding(16.dp))
         OutlinedTextField(
-            value = alarmViewModel.pendingGapTime,
+            value = alarmUiState.gapTime ?: "",
             singleLine = true,
-            onValueChange = { alarmViewModel.onGapTimeChanged(it) },
+            onValueChange = { newValue: String ->
+                alarmViewModel.onGapTimeChanged(newValue)
+            },
             isError = !alarmViewModel.isValidInput,
             label = {
                 if (alarmViewModel.isValidInput) Text(stringResource(R.string.gapTime_input_tag))
                 else Text(stringResource(R.string.wrong_input_tag))
-            }
+            },
+            modifier = modifier
         )
-        Spacer(modifier = Modifier.padding(16.dp))
-        Row {
+        Spacer(modifier = Modifier.padding(8.dp))
+        Button(
+            onClick = { alarmViewModel.onSaveClick(context) },
+            modifier = modifier
+        ) {
+            Text(stringResource(R.string.save_as_default))
+        }
+        Spacer(modifier = Modifier.padding(8.dp))
+        Row(modifier = modifier,
+            horizontalArrangement = Arrangement.SpaceBetween) {
             Button(
                 onClick = {
                     alarmViewModel.onSetAlarmClick(
@@ -167,14 +177,16 @@ fun AlarmScreen(
                         permissionLauncher = permissionLauncher
                     )
                 },
+                modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(R.string.set_exact_alarm))
             }
-            Spacer(modifier = Modifier.padding(20.dp))
+            Spacer(modifier = Modifier.padding(5.dp))
             Button(
                 onClick = {
                     alarmViewModel.onCancelAlarmClick(context = context)
                 },
+                modifier = Modifier.weight(1f)
             ) {
                 Text(stringResource(R.string.cancel_current_alarm))
             }
@@ -188,13 +200,15 @@ fun AlarmScreen(
             )
         )
         Spacer(modifier = Modifier.padding(4.dp))
-        Column (modifier = Modifier
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
+        Column(
+            modifier = Modifier
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
                 )
-            )){
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Absolute.SpaceBetween,

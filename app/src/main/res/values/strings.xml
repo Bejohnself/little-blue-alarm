@@ -16,4 +16,8 @@
     <string name="expand_button_content_description">expand button</string>
     <string name="description">说明：</string>
     <string name="description_content">欢迎使用，本应用为定时提醒程序，可设定备注以及间隔时间。\n\n为了您可以正常使用本应用，需要您给予通知和后台运行权限。此外，为了您享受更好的体验，可自行到“通知”设置通知的铃声和振动，以及开启横幅和锁屏通知。\n\n祝您使用愉快！！\n</string>
+    <string name="save_as_default">保存为默认设置</string>
+    <string name="set_alarm_warning">已设置周期为%1$s分钟的提醒</string>
+    <string name="cancel_alarm_warning">已取消当前周期闹钟</string>
+    <string name="save_configure">已保存参数</string>
 </resources>
