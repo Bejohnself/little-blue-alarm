@@ -10,18 +10,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.tryalarm.ui.layout.AlarmApp
-import com.example.tryalarm.ui.state.AlarmViewModel
 import com.example.tryalarm.ui.theme.TryAlarmTheme
 
 
 class MainActivity : ComponentActivity() {
     private val alarmViewModel by lazy {
-    if (application is MyApplication) {
-        (application as MyApplication).alarmViewModel
-    } else {
-        throw IllegalStateException("Application is not an instance of MyApplication")
+        if (application is MyApplication) {
+            (application as MyApplication).alarmViewModel
+        } else {
+            throw IllegalStateException("Application is not an instance of MyApplication")
+        }
     }
-}
 
 
     @RequiresApi(Build.VERSION_CODES.S)

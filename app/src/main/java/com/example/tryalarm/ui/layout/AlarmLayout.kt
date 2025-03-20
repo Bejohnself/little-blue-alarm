@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -166,8 +165,10 @@ fun AlarmScreen(
             Text(stringResource(R.string.save_as_default))
         }
         Spacer(modifier = Modifier.padding(8.dp))
-        Row(modifier = modifier,
-            horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            modifier = modifier,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Button(
                 onClick = {
                     alarmViewModel.onSetAlarmClick(
