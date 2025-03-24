@@ -15,6 +15,7 @@ class MyApplication : Application(), LifecycleObserver {
         override val viewModelStore = ViewModelStore()
     }
     lateinit var alarmViewModel: AlarmViewModel
+        private set
 
     override fun onCreate() {
         super.onCreate()

@@ -2,7 +2,9 @@ package com.example.tryalarm.widget
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -51,6 +53,12 @@ class AlarmWidget : GlanceAppWidget() {
         // 观察剩余时间
         val leftTime by alarmViewModel.leftTime.collectAsState()
 
+        // 添加详细日志跟踪数据流
+        LaunchedEffect(Unit) {
+            alarmViewModel.leftTime.collect { time ->
+                Log.d("WidgetDebug", "Received time update: $time (${System.currentTimeMillis()})")
+            }
+        }
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -148,6 +156,7 @@ class SetAlarmActionCallback : ActionCallback {
 //                ), Toast.LENGTH_SHORT
 //            ).show()
             alarmViewModel.startWidgetUpdateLoop(context) // 启动新循环
+            AlarmWidget.updateWidget(context)
         }
     }
 }

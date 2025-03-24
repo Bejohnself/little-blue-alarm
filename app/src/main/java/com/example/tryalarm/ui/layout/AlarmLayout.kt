@@ -95,7 +95,6 @@ fun AlarmApp(alarmViewModel: AlarmViewModel) {
     )
 }
 
-
 @Composable
 fun AlarmScreen(
     alarmViewModel: AlarmViewModel,
@@ -184,6 +183,11 @@ fun AlarmScreen(
             Button(
                 onClick = {
                     alarmViewModel.onCancelAlarmClick(context = context)
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.cancel_alarm_warning),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 },
                 modifier = Modifier.weight(1f)
             ) {
@@ -240,7 +244,7 @@ fun AlarmScreen(
 
         LaunchedEffect(Unit) {
             while (true) {
-                alarmViewModel.updateLeftTime()
+                alarmViewModel.updateLeftTime(context)
                 if (leftTime < 0 && alarmViewModel.alarmOn) {
                     alarmViewModel.resetAlarm(
                         alarmManager = alarmViewModel.alarmManager,

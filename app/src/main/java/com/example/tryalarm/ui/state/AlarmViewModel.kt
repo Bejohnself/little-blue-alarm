@@ -58,15 +58,15 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
     var expanded by mutableStateOf(false)
     private var widgetUpdateJob: Job? = null
 
-
     fun startWidgetUpdateLoop(context: Context) {
         widgetUpdateJob?.cancel() // 防止重复启动
         widgetUpdateJob = viewModelScope.launch {
             while (isActive) {
-                updateLeftTime()
-                if (leftTime.value < 0 && alarmOn) {
+                updateLeftTime(context)
+                if (leftTime.value <= 0 && alarmOn) {
                     resetAlarm(alarmManager, context)
                 }
+//                AlarmWidget.updateWidget(context) // 确保每次都更新 Widget
                 delay(1000)
             }
         }
@@ -120,6 +120,7 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
 
     // 设置闹钟的具体逻辑
     fun setAlarm(alarmManager: AlarmManager, context: Context) {
+        alarmOn = true
         val intent = getAlarmIntent(context)
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP, _uiState.value.triggerTime, intent
@@ -165,7 +166,6 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
                                     ((_uiState.value.gapTime!!.toDouble() * 60_000).toLong())
                         )
                     }
-                    alarmOn = true
                     setAlarm(alarmManager, context)
                     Toast.makeText(
                         context,
@@ -197,11 +197,6 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
             )
         }
         _leftTime.update { 0L }
-        Toast.makeText(
-            context,
-            context.getString(R.string.cancel_alarm_warning),
-            Toast.LENGTH_SHORT
-        ).show()
     }
 
     fun widgetCancelAlarm(context: Context) {
@@ -219,9 +214,13 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
         }
     }
 
-    fun updateLeftTime() {
+    fun updateLeftTime(context: Context) {
         if (alarmOn) {
             _leftTime.update { _uiState.value.triggerTime - System.currentTimeMillis() }
+        }
+        // 视情况添加以下代码
+        viewModelScope.launch {
+            context.let { AlarmWidget.updateWidget(it) }
         }
     }
 
