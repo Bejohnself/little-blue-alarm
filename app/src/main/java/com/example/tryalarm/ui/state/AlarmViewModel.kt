@@ -96,15 +96,21 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
     }
 
     fun onSaveClick(context: Context) {
-        viewModelScope.launch {
-            store.update(
-                tip = uiState.value.tip ?: "",
-                gapTime = uiState.value.gapTime ?: ""
-            )
+        if(checkValidInput()) {
+            viewModelScope.launch {
+                store.update(
+                    tip = uiState.value.tip ?: "",
+                    gapTime = uiState.value.gapTime ?: ""
+                )
+            }
+            Toast.makeText(
+                context, context.getString(R.string.save_configure), Toast.LENGTH_SHORT
+            ).show()
+            isValidInput = true
         }
-        Toast.makeText(
-            context, context.getString(R.string.save_configure), Toast.LENGTH_SHORT
-        ).show()
+        else{
+            isValidInput = false
+        }
     }
 
     private fun getAlarmIntent(context: Context): PendingIntent {
@@ -154,7 +160,7 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
             if (!hasNotificationsPermission(context)) {      // 没有通知权限
                 Toast.makeText(
                     context,
-                    context.getString(R.string.no_notifiication_authority_inform),
+                    context.getString(R.string.no_notification_authority_inform),
                     Toast.LENGTH_SHORT
                 ).show()
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)

@@ -25,12 +25,11 @@ import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.color.ColorProvider
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
-import androidx.glance.layout.width
+import androidx.glance.layout.size
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.example.tryalarm.MyApplication
@@ -59,17 +58,20 @@ class AlarmWidget : GlanceAppWidget() {
                 Log.d("WidgetDebug", "Received time update: $time (${System.currentTimeMillis()})")
             }
         }
-        Column(
+        Row(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .background(day = Color.White, night = Color(0xFF050B13))
-                .cornerRadius(16.dp),
+                .background(
+                    day = Color.White.copy(alpha = 0.8f),
+                    night = Color(0xFF050B13).copy(alpha = 0.8f)
+                )
+                .cornerRadius(30.dp)
+                .padding(end = 8.dp, start = 15.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = formatTime(leftTime),
-                modifier = GlanceModifier.padding(4.dp),
                 style = TextStyle(
                     fontSize = 30.sp,
                     color = ColorProvider(
@@ -78,11 +80,12 @@ class AlarmWidget : GlanceAppWidget() {
                     )
                 )
             )
-            Row(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Spacer(
+                modifier = GlanceModifier.size(150.dp)  // 添加一个弹性空间
+            )
+            if (!alarmViewModel.alarmOn) {
                 Button(
-                    text = "开始",
+                    text = "",
                     onClick = actionRunCallback<SetAlarmActionCallback>(),
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = ColorProvider(
@@ -93,22 +96,24 @@ class AlarmWidget : GlanceAppWidget() {
                             day = Color(0xFFFFFFFF),
                             night = Color(0xFF0A305F)
                         )          // 文字颜色
-                    )
+                    ),
+                    modifier = GlanceModifier.cornerRadius(90.dp).size(32.dp)
                 )
-                Spacer(modifier = GlanceModifier.width(16.dp))
+            } else {
                 Button(
-                    text = "结束",
+                    text = "",
                     onClick = actionRunCallback<CancelAlarmActionCallback>(),
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = ColorProvider(
-                            day = Color(0xFF415F91),
-                            night = Color(0xFFAAC7FF)
+                            day = Color( 0xFF860606),
+                            night = Color(0xFFFFB4AB)
                         ), // 背景色
                         contentColor = ColorProvider(
                             day = Color(0xFFFFFFFF),
                             night = Color(0xFF0A305F)
                         )          // 文字颜色
-                    )
+                    ),
+                    modifier = GlanceModifier.cornerRadius(90.dp).size(32.dp)
                 )
             }
         }
@@ -117,8 +122,9 @@ class AlarmWidget : GlanceAppWidget() {
     @SuppressLint("DefaultLocale")
     private fun formatTime(timeInMillis: Long): String {
         val seconds = (timeInMillis / 1000) % 60
-        val minutes = (timeInMillis / (1000 * 60)) % 60
-        return String.format("%02d : %02d", minutes, seconds)
+        val minutes = (timeInMillis / (1000 * 60))
+        return if (minutes < 100) String.format("%02d : %02d", minutes, seconds)
+        else String.format("%03d : %02d", minutes, seconds)
     }
 
     companion object {

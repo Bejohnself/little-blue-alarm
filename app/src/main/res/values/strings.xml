@@ -7,7 +7,7 @@
     <string name="set_exact_alarm">设置闹钟</string>
     <string name="cancel_current_alarm">关闭当前闹钟</string>
     <string name="remaining_time">剩余时间：%1$s 分 %2$s 秒</string>
-    <string name="no_notifiication_authority_inform">没有通知权限，请开启权限并设定铃声和振动</string>
+    <string name="no_notification_authority_inform">没有通知权限，请开启权限并设定铃声和振动</string>
     <string name="can_not_set_exact_alarm">无法设置精确闹钟，需要手动授予权限</string>
     <string name="notification_title">闹钟触发</string>
     <string name="close_button">关闭</string>
@@ -15,7 +15,8 @@
     <string name="notifications_for_precise_alarm_triggering">用于精确闹钟触发的通知</string>
     <string name="expand_button_content_description">expand button</string>
     <string name="description">说明：</string>
-    <string name="description_content">欢迎使用，本应用为定时提醒程序，可设定备注以及间隔时间。\n\n为了您可以正常使用本应用，需要您给予通知和后台运行权限。此外，为了您享受更好的体验，可自行到“通知”设置通知的铃声和振动，以及开启横幅和锁屏通知。\n\n祝您使用愉快！！\n</string>
+    <string name="description_content">欢迎使用，本应用为定时提醒程序，可设定备注以及间隔时间。\n\n为了您可以正常使用本应用，需要您给予通知和后台运行权限。
+        此外，为了您享受更好的体验，可自行到“通知”设置通知的铃声和振动，以及开启横幅和锁屏通知。\n\n如要使用桌面组件，请先保存具体参数，小蓝闹会使用已保存的参数运行。\n\n祝您使用愉快！！\n</string>
     <string name="save_as_default">保存为默认设置</string>
     <string name="set_alarm_warning">已设置周期为%1$s分钟的提醒</string>
     <string name="cancel_alarm_warning">已取消当前周期闹钟</string>

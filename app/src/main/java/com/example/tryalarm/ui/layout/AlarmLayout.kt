@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -103,6 +105,7 @@ fun AlarmScreen(
     val alarmUiState by alarmViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val leftTime by alarmViewModel.leftTime.collectAsState()
+    val scrollState = rememberScrollState()
     alarmViewModel.initAlarmManager(context)
 
     // 权限请求 Launcher
@@ -127,7 +130,7 @@ fun AlarmScreen(
 
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
