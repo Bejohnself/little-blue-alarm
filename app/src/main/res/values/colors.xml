@@ -7,4 +7,10 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="widget_background_day">#80FFFFFF</color> <!-- 半透明白色 -->
+    <color name="widget_background_night">#80333333</color> <!-- 半透明黑色 -->
+    <color name="time_display_background">#4CAF50</color> <!-- 绿色背景 -->
+    <color name="time_text">#FFFFFF</color> <!-- 白色文字 -->
+    <color name="button_background">#2196F3</color> <!-- 蓝色按钮 -->
+    <color name="widget_background">#FFFFFFFF</color>
 </resources>

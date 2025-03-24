@@ -1,11 +1,9 @@
 package com.example.tryalarm.ui.layout
 
 import android.annotation.SuppressLint
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -98,7 +96,6 @@ fun AlarmApp(alarmViewModel: AlarmViewModel) {
 }
 
 
-@RequiresApi(Build.VERSION_CODES.S)
 @Composable
 fun AlarmScreen(
     alarmViewModel: AlarmViewModel,
@@ -106,6 +103,7 @@ fun AlarmScreen(
 ) {
     val alarmUiState by alarmViewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val leftTime by alarmViewModel.leftTime.collectAsState()
     alarmViewModel.initAlarmManager(context)
 
     // 权限请求 Launcher
@@ -196,8 +194,8 @@ fun AlarmScreen(
         Text(
             text = stringResource(
                 R.string.remaining_time,
-                alarmUiState.leftTime / 1000 / 60,
-                alarmUiState.leftTime / 1000 % 60
+                leftTime / 1000 / 60,
+                leftTime / 1000 % 60
             )
         )
         Spacer(modifier = Modifier.padding(4.dp))
@@ -243,7 +241,7 @@ fun AlarmScreen(
         LaunchedEffect(Unit) {
             while (true) {
                 alarmViewModel.updateLeftTime()
-                if (alarmUiState.leftTime < 0 && alarmViewModel.alarmOn) {
+                if (leftTime < 0 && alarmViewModel.alarmOn) {
                     alarmViewModel.resetAlarm(
                         alarmManager = alarmViewModel.alarmManager,
                         context = context

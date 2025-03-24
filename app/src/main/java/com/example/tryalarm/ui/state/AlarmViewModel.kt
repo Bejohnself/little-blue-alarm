@@ -13,7 +13,6 @@ import android.graphics.BitmapFactory
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
-import androidx.annotation.RequiresApi
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -27,17 +26,29 @@ import com.example.tryalarm.AlarmDismissReceiver
 import com.example.tryalarm.AlarmReceiver
 import com.example.tryalarm.R
 import com.example.tryalarm.data.UserPreferencesStore
+import com.example.tryalarm.widget.AlarmWidget
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
-//val alarmViewModel = AlarmViewModel()
 
 class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
     private val _uiState = MutableStateFlow(AlarmUiState())
     val uiState: StateFlow<AlarmUiState> = _uiState.asStateFlow()
+    init {
+        viewModelScope.launch {
+            store.observePreferences().collect { prefs ->
+                _uiState.value = prefs
+            }
+        }
+    }
+
+    private val _leftTime = MutableStateFlow((_uiState.value.gapTime!!.toDouble().times(60_000)).toLong())
+    var leftTime: StateFlow<Long> = _leftTime.asStateFlow()
     var alarmOn by mutableStateOf(false)
 
     //    var pendingGapTime by mutableStateOf(uiState.value.gapTime.toString())
@@ -45,14 +56,25 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
 
     lateinit var alarmManager: AlarmManager
     var expanded by mutableStateOf(false)
-//    private var save by mutableStateOf(false)
+    private var widgetUpdateJob: Job? = null
 
-    init {
-        viewModelScope.launch {
-            store.observePreferences().collect { prefs ->
-                _uiState.value = prefs
+
+    fun startWidgetUpdateLoop(context: Context) {
+        widgetUpdateJob?.cancel() // 防止重复启动
+        widgetUpdateJob = viewModelScope.launch {
+            while (isActive) {
+                updateLeftTime()
+                if (leftTime.value < 0 && alarmOn) {
+                    resetAlarm(alarmManager, context)
+                }
+                delay(1000)
             }
         }
+    }
+
+    fun stopWidgetUpdateLoop() {
+        widgetUpdateJob?.cancel()
+        widgetUpdateJob = null
     }
 
     fun initAlarmManager(context: Context) {
@@ -98,12 +120,12 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
 
     // 设置闹钟的具体逻辑
     fun setAlarm(alarmManager: AlarmManager, context: Context) {
-//        val triggerTime = (System.currentTimeMillis() + minutes * 60 * 1000).toLong()
         val intent = getAlarmIntent(context)
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP, _uiState.value.triggerTime, intent
         )
     }
+
 
     // 检查输入是否可以转化成小数且大于0
     private fun checkValidInput(): Boolean {
@@ -118,7 +140,6 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.S)
     fun onSetAlarmClick(
         context: Context,
         alarmManager: AlarmManager,
@@ -144,8 +165,8 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
                                     ((_uiState.value.gapTime!!.toDouble() * 60_000).toLong())
                         )
                     }
-                    setAlarm(alarmManager, context)
                     alarmOn = true
+                    setAlarm(alarmManager, context)
                     Toast.makeText(
                         context,
                         context.getString(
@@ -172,14 +193,22 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
 //        pendingGapTime = ""
         _uiState.update {
             it.copy(
-                leftTime = 0L, triggerTime = 0L
+                triggerTime = 0L
             )
         }
+        _leftTime.update { 0L }
         Toast.makeText(
             context,
             context.getString(R.string.cancel_alarm_warning),
             Toast.LENGTH_SHORT
         ).show()
+    }
+
+    fun widgetCancelAlarm(context: Context) {
+        viewModelScope.launch {
+            AlarmWidget.updateWidget(context)
+            onCancelAlarmClick(context)
+        }
     }
 
     fun onTipChange(tip: String) {
@@ -192,11 +221,7 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
 
     fun updateLeftTime() {
         if (alarmOn) {
-            _uiState.update { currentState ->
-                currentState.copy(
-                    leftTime = _uiState.value.triggerTime - System.currentTimeMillis()
-                )
-            }
+            _leftTime.update { _uiState.value.triggerTime - System.currentTimeMillis() }
         }
     }
 
@@ -205,10 +230,10 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
         _uiState.update { currentState ->
             currentState.copy(
                 triggerTime = currentTime +
-                        (_uiState.value.gapTime!!.toDouble() * 60_000).toLong(),
-                leftTime = (_uiState.value.gapTime!!.toDouble() * 60_000).toLong()
+                        (_uiState.value.gapTime!!.toDouble() * 60_000).toLong()
             )
         }
+        _leftTime.update { (_uiState.value.gapTime!!.toDouble() * 60_000).toLong() }
         setAlarm(alarmManager, context)
     }
 
@@ -246,14 +271,15 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
             ) != PackageManager.PERMISSION_GRANTED
         ) {
             Toast.makeText(
-                context, context.getString(R.string.need_notification_authority), Toast.LENGTH_SHORT
+                context,
+                context.getString(R.string.need_notification_authority),
+                Toast.LENGTH_SHORT
             ).show()
         } else {
             NotificationManagerCompat.from(context).notify(1, notification)
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
     fun createNotificationChannel(context: Context) {
         val channel = NotificationChannel(
             "alarm_channel", "闹钟通知", NotificationManager.IMPORTANCE_HIGH
@@ -273,11 +299,8 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
     // 检查是否已有权限
     private fun hasExactAlarmPermission(context: Context): Boolean {
         val alarmManager = context.getSystemService<AlarmManager>()!!
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            alarmManager.canScheduleExactAlarms()
-        } else {
-            true // Android 12 及以下版本自动获得权限
-        }
+        return alarmManager.canScheduleExactAlarms()
+
     }
 
     private fun hasNotificationsPermission(context: Context): Boolean {

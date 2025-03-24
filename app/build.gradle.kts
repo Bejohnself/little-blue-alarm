@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.tryalarm"
-        minSdk = 26
+        minSdk = 31
         targetSdk = 34
         versionCode = 4
         versionName = "3.1"
@@ -40,6 +40,15 @@ android {
 }
 
 dependencies {
+    // For Glance support
+    implementation(libs.androidx.glance.glance)
+
+    // For AppWidgets support
+    implementation(libs.androidx.glance.glance.appwidget)
+
+    // For interop APIs with Material 3
+    implementation(libs.androidx.glance.material3)
+
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.core.ktx)
@@ -52,6 +61,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.androidx.datastore.core.android)
+    implementation(libs.androidx.lifecycle.process)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
