@@ -54,5 +54,4 @@ class UserPreferencesStore(private val context: Context) {
             prefs.clear()
         }
     }
-
 }

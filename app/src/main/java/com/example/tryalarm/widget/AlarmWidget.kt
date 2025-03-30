@@ -2,9 +2,8 @@ package com.example.tryalarm.widget
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -33,6 +32,7 @@ import androidx.glance.layout.size
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.example.tryalarm.MyApplication
+import com.example.tryalarm.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -52,12 +52,6 @@ class AlarmWidget : GlanceAppWidget() {
         // 观察剩余时间
         val leftTime by alarmViewModel.leftTime.collectAsState()
 
-        // 添加详细日志跟踪数据流
-        LaunchedEffect(Unit) {
-            alarmViewModel.leftTime.collect { time ->
-                Log.d("WidgetDebug", "Received time update: $time (${System.currentTimeMillis()})")
-            }
-        }
         Row(
             modifier = GlanceModifier
                 .fillMaxSize()
@@ -105,7 +99,7 @@ class AlarmWidget : GlanceAppWidget() {
                     onClick = actionRunCallback<CancelAlarmActionCallback>(),
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = ColorProvider(
-                            day = Color( 0xFF860606),
+                            day = Color(0xFF860606),
                             night = Color(0xFFFFB4AB)
                         ), // 背景色
                         contentColor = ColorProvider(
@@ -154,13 +148,13 @@ class SetAlarmActionCallback : ActionCallback {
                 alarmManager = alarmViewModel.alarmManager,
                 context = context
             )
-//            Toast.makeText(
-//                context,
-//                context.getString(
-//                    R.string.set_alarm_warning,
-//                    alarmViewModel.uiState.value.gapTime.toString()
-//                ), Toast.LENGTH_SHORT
-//            ).show()
+            Toast.makeText(
+                context,
+                context.getString(
+                    R.string.set_alarm_warning,
+                    alarmViewModel.uiState.value.gapTime.toString()
+                ), Toast.LENGTH_SHORT
+            ).show()
             alarmViewModel.startWidgetUpdateLoop(context) // 启动新循环
             AlarmWidget.updateWidget(context)
         }

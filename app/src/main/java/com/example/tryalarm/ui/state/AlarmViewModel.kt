@@ -39,15 +39,17 @@ import kotlinx.coroutines.launch
 class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
     private val _uiState = MutableStateFlow(AlarmUiState())
     val uiState: StateFlow<AlarmUiState> = _uiState.asStateFlow()
+
     init {
         viewModelScope.launch {
             store.observePreferences().collect { prefs ->
-                _uiState.value = prefs
+                _uiState.value = prefs // 更新状态值
             }
         }
     }
 
-    private val _leftTime = MutableStateFlow((_uiState.value.gapTime!!.toDouble().times(60_000)).toLong())
+    private val _leftTime =
+        MutableStateFlow((_uiState.value.gapTime!!.toDouble().times(60_000)).toLong())
     var leftTime: StateFlow<Long> = _leftTime.asStateFlow()
     var alarmOn by mutableStateOf(false)
 
@@ -96,8 +98,9 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
     }
 
     fun onSaveClick(context: Context) {
-        if(checkValidInput()) {
+        if (checkValidInput()) {
             viewModelScope.launch {
+                store.clear()
                 store.update(
                     tip = uiState.value.tip ?: "",
                     gapTime = uiState.value.gapTime ?: ""
@@ -107,8 +110,7 @@ class AlarmViewModel(private val store: UserPreferencesStore) : ViewModel() {
                 context, context.getString(R.string.save_configure), Toast.LENGTH_SHORT
             ).show()
             isValidInput = true
-        }
-        else{
+        } else {
             isValidInput = false
         }
     }
